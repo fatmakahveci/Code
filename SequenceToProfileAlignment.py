@@ -172,8 +172,6 @@ def TraceBack():
 
 def createNewAlignedSequenceFile():
 
-    seqList = list()
-
     with open(allAlignedSequencesFileName, "w") as outFile:
 
         with open(alignedSequencesFileName, "r") as inFile:
