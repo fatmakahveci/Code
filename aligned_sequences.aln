@@ -1,5 +1,5 @@
-sequence1   -AGGCTATCACCTG
-sequence2   TAG-CTACCA---G
-sequence3   CAG-CTACCA---G
-sequence4   CAG-CTATCAC-GG
-sequence5   CAG-CTATCGC-GG
+sequence1   -AGGCTATCACCTGAC-GCGG-C
+sequence2   TAG-CTACCA---GAC-GC-GAG
+sequence3   CAG-CTACCA---GGCCGA-GAG
+sequence4   CAG-CTATCAC-GGAC-T-GGCA
+sequence5   CAG-CTATCGC-GG-CAGT-GAG

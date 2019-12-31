@@ -142,6 +142,8 @@ def TraceBack():
     rowIdx = alignmentMatrix.shape[0] - 1
     colIdx = alignmentMatrix.shape[1] - 1
 
+    insertedGapInProfileIdxList = list()
+
     while rowIdx > 0 and colIdx > 0:
 
             if tracebackMatrix[rowIdx][colIdx] == '0':
@@ -158,6 +160,7 @@ def TraceBack():
             elif tracebackMatrix[rowIdx][colIdx] == '2':
                 alignedSequence += seqFasta[rowIdx - 1]
                 alignedProfile += "-"
+                insertedGapInProfileIdxList.append(colIdx + 1)
                 rowIdx -= 1
 
     while rowIdx > 0:
@@ -168,7 +171,7 @@ def TraceBack():
         alignedProfile += profileFasta[colIdx - 1]
         colIdx -= 1
 
-    return alignedSequence[::-1], alignedProfile[::-1]
+    return alignedSequence[::-1], alignedProfile[::-1], insertedGapInProfileIdxList[::-1]
 
 def createNewAlignedSequenceFile():
 
@@ -177,11 +180,21 @@ def createNewAlignedSequenceFile():
         with open(alignedSequencesFileName, "r") as inFile:
 
             for line in inFile.readlines():
-                outFile.write(line)
+                fields = line.strip().split()
+
+                seqId = fields[0]
+                seq = fields[1]
+
+                noGap = 0
+
+                for idx in insertedGapInProfileIdxList:
+                    seq = seq[:idx+noGap] + "-" + seq[idx+noGap:]
+
+                outFile.write(seqId + "\t" + seq + "\n")
 
             inFile.close()
 
-        outFile.write("\nsequence\t" + alignedSequence)
+        outFile.write("sequence\t" + alignedSequence)
 
         outFile.close()
 
@@ -211,6 +224,6 @@ if __name__ == "__main__":
     seqFasta = getSeqFasta()
 
     alignmentMatrix, tracebackMatrix = NaiveNeedlemanWunsch()
-    alignedSequence, alignedProfile = TraceBack()
+    alignedSequence, alignedProfile, insertedGapInProfileIdxList = TraceBack()
 
     createNewAlignedSequenceFile()
