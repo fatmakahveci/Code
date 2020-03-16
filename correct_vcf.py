@@ -1,7 +1,7 @@
 #!/usr/bin/env python3.7
 
 """
-Date: March 16, 2020
+Date: March 11, 2020
 Author: Fatma Kahveci
 
 Aim: This code aims to add info and extract the columns belonging to the given samples from species' reference vcf file.
@@ -108,7 +108,7 @@ def extract_sample_column(line): # #CHROM POS ID REF ALT QUAL FILTER INFO FORMAT
 
 	return "\t".join(fields)
 
-def get_sample_names_from_fastq():
+def get_sample_names_from_fastq(): # read sample id from fastq file i.e. for the experiments containing mixed samples to extract their information
 
 	sample_set = set()
 
@@ -135,7 +135,7 @@ def extract_line_with_same_gt(line): # extract the lines that are incapable of r
 	
 	return ""
 
-def get_sample_list():
+def get_sample_list(): # choose whether sample name will be coming from the user of fastq file
 
 	if not args["--samples_in_fastq"] is None:
 		return get_sample_names_from_fastq()
