@@ -1,22 +1,23 @@
 #!/usr/bin/env python3.7
 
 """
-Date: March 11, 2020
+Date: March 16, 2020
 Author: Fatma Kahveci
 
 Aim: This code aims to add info and extract the columns belonging to the given samples from species' reference vcf file.
 
 Usage:
-	correct_vcf.py --vcf=<input_file_name> --out=<output_file_name> --sample=<sample> [--correct_info] [--remove_same_gt_line]
+	correct_vcf.py --vcf=<input_file_name> --out=<output_file_name> [--correct_info] [--remove_same_gt_line] (--sample=<sample> | --samples_in_fastq=<fastq_file_name>)
 	correct_vcf.py --help
 
 Options:
-	-h --help			Show this help message and exit.
+	-h --help					Show this help message and exit.
 	--vcf=input_file_name		Input VCF file name
 	--out=output_file_name		Output VCF file name
-	--sample=samp 			List of samples to be extracted.
-	--correct_info			Is info field will be corrected? [default: False].
+	--sample=sample_list		List of samples to be extracted. [default: None]
+	--correct_info				Is info field will be corrected? [default: False].
 	--remove_same_gt_line		Is the line with same gt for each sample removed? [default: False].
+	--samples_in_fastq			Take sample names from FASTQ file. [default: None]
 """
 
 
@@ -107,6 +108,20 @@ def extract_sample_column(line): # #CHROM POS ID REF ALT QUAL FILTER INFO FORMAT
 
 	return "\t".join(fields)
 
+def get_sample_names_from_fastq():
+
+	sample_set = set()
+
+	with open(args["--samples_in_fastq"], 'r') as in_file:
+
+		for line in in_file.readlines():
+
+			if line.startswith('@') and 'length' in line:
+				sample_set.add(line[1:].split('.')[0])
+		
+		in_file.close()
+
+	return list(sample_set)
 
 def extract_line_with_same_gt(line): # extract the lines that are incapable of representation
 
@@ -120,6 +135,15 @@ def extract_line_with_same_gt(line): # extract the lines that are incapable of r
 	
 	return ""
 
+def get_sample_list():
+
+	if not args["--samples_in_fastq"] is None:
+		return get_sample_names_from_fastq()
+
+	else:
+		return args["--sample"].split(",")
+
+
 
 ### MAIN METHOD ###
 
@@ -127,7 +151,7 @@ if __name__ == "__main__":
 	
 	args = docopt(__doc__, version="0.6.2")
 
-	sample_list = str(args["--sample"]).split(",")
+	sample_list = get_sample_list()
 
 	out_file = open(args["--out"], 'w')
 
