@@ -1,11 +1,23 @@
 #!/usr/bin/env python3.7
+"""
+Author: Fatma Kahveci
+Date: March 16, 2020
 
-# usage: python3.7 add_snps_per_given_number_of_base.py --fasta ${file_name}.fasta --interval ${per_given_number_of_bases}
+Aim: Add random SNPs to given sample while preserving the GC-content
 
-import argparse
+Usage:
+	add_snps_per_given_number_of_base.py --fasta=<sample.fasta> --interval=<per_given_number_of_bases>
+
+Options:
+	-h --help					Show this help message and exit.
+	--fasta=<sample.fasta>				Input FASTA file. [default: ""]
+	--interval=<per_given_number_of_bases>		Number of SNPs per given. [default: 0]
+
+"""
+
 from Bio import SeqIO
 from random import seed, randint
-
+from docopt import docopt
 
 def change_base(base): # to preserve the GC-content
 
@@ -16,16 +28,11 @@ def change_base(base): # to preserve the GC-content
 
 if __name__ == "__main__":
 
-	parser = argparse.ArgumentParser()
+	args = docopt(__doc__, version="0.6.2")
 
-	parser.add_argument("--fasta", help = "Input Fasta File")
-	parser.add_argument("--interval", help = "SNP per given interval")
+	interval = int(args["--interval"])
 
-	args = parser.parse_args()
-
-	interval = int(args.interval)
-
-	out_file = open(args.fasta.strip(".fasta")+"_"+str(interval)+".fasta","w")
+	out_file = open(args["--fasta"]+"_"+str(interval)+".fasta","w")
 	
 	for fasta_seq in SeqIO.parse(args.fasta, "fasta"):
 
