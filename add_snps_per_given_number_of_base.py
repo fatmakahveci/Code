@@ -7,7 +7,7 @@ from Bio import SeqIO
 from random import seed, randint
 
 
-def change_base(base):
+def change_base(base): # to preserve the GC-content
 
 	base_dict = {'A':'T', 'C':'G', 'G':'C', 'T':'A'}
 	
