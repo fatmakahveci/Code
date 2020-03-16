@@ -7,13 +7,15 @@ Author: Fatma Kahveci
 Aim: This code aims to add info and extract the columns belonging to the given samples from species' reference vcf file.
 
 Usage:
-	correct_vcf.py --sample=<sample> [--correct_info] [--remove_same_gt_line]
+	correct_vcf.py --vcf=<input_file_name> --out=<output_file_name> --sample=<sample> [--correct_info] [--remove_same_gt_line]
 	correct_vcf.py --help
 
 Options:
-	-h --help					Show this help message and exit.
-	--sample=samp 				List of samples to be extracted.
-	--correct_info				Is info field will be corrected? [default: False].
+	-h --help			Show this help message and exit.
+	--vcf=input_file_name		Input VCF file name
+	--out=output_file_name		Output VCF file name
+	--sample=samp 			List of samples to be extracted.
+	--correct_info			Is info field will be corrected? [default: False].
 	--remove_same_gt_line		Is the line with same gt for each sample removed? [default: False].
 """
 
@@ -127,11 +129,11 @@ if __name__ == "__main__":
 
 	sample_list = str(args["--sample"]).split(",")
 
-	out_file = open("strain_graph_sa_corrected.vcf", 'w')
+	out_file = open(args["--out"], 'w')
 
 	no_info_field = 9
 
-	with open("strain_graph_sa.vcf", 'r') as in_file:
+	with open(args["--vcf"], 'r') as in_file:
 
 		for line in in_file.readlines():
 
