@@ -1,7 +1,7 @@
-#!/usr/bin/env python
+# !/usr/bin/env python
 """ This script reads BAM files and a population VCF file with known alleles and sublineages
 (e.g. created by make_population_vcf.py) and detects reads mapped to sublineage-specific alleles.
-It is p[ossible to specify various threshold values for attributes of mapped alleles,  below which
+It is possible to specify various threshold values for attributes of mapped alleles,  below which
 the mappings are considered not informative enough, and ignored.
 """
 
@@ -13,14 +13,14 @@ import numpy
 import sys
 from collections import OrderedDict as odict, defaultdict, namedtuple
 from os import path
-import multiprocessing as concurrent    # multiprocessing.dummy is the interface for threaded concurrency, 1 core only.
+import multiprocessing as concurrent  # multiprocessing.dummy is the interface for threaded concurrency, 1 core only.
 from sortedcontainers import SortedListWithKey as slist
 
 import pysam
 import utils
 
 
-def ParseArgs():    # one glorious day we will replace this with docopts-based parsing.
+def ParseArgs():  # one glorious day we will replace this with docopts-based parsing.
     arg_parser = argparse.ArgumentParser()
     arg_parser.add_argument('bams_in', nargs='+', help='input BAM files')
     arg_parser.add_argument('-v', help='VCF file containing alleles and sublineage incidence info',
@@ -84,8 +84,10 @@ def implied_errors_():
         implied_errors_.s_values = ierrs
     return implied_errors_.s_values
 
+
 def alignment_is_ok(align, min_mq=15, map_factor=0.75):
     return align.mapping_quality > min_mq and align.query_alignment_length > align.query_length * map_factor
+
 
 # @profile
 def GuesstimateInitialSublineagePriors(bam_in, sl_alleles, bed_regions, min_reads, min_contrib, lin_cutoff):
@@ -120,7 +122,7 @@ def GuesstimateInitialSublineagePriors(bam_in, sl_alleles, bed_regions, min_read
         for locus in bam_in.pileup(contig=contig, start=pos, stop=pos + 1, truncate=True,
                                    max_depth=2000000, min_mapping_quality=30, adjust_capq_threshold=50):
             if locus.n < min_reads:
-                g_logger.debug('ignoring position {} due to low coverage.'.format(pos))
+                logger.debug('ignoring position {} due to low coverage.'.format(pos))
                 continue
 
             base_frequency.fill(0)
@@ -136,13 +138,13 @@ def GuesstimateInitialSublineagePriors(bam_in, sl_alleles, bed_regions, min_read
     else:
         sl_priors = {sl: ac[0] for sl, ac in sl_alleles_contrib.viewitems()}
 
-    g_logger.debug('sl_priors before normalisation: {}'.format(sl_priors))
+    logger.debug('sl_priors before normalisation: {}'.format(sl_priors))
 
     slp_norm = float(sum(sl_priors.viewvalues()))
     if slp_norm > 0:
         sl_priors = {l: v / slp_norm for l, v in sl_priors.viewitems()}
 
-    g_logger.info("Initialised sublineage distribution: {}\n".format(utils.present_distribution(sl_priors)))
+    logger.info("Initialised sublineage distribution: {}\n".format(utils.present_distribution(sl_priors)))
 
     bam_in.seek(0)
     return sl_priors
@@ -238,7 +240,7 @@ def ComputeHaplotypeLogProbabilities(haplotype, all_alleles, sublineage_samples,
                 break
 
         if len(supporting_samples) >= len(seen_sub_samples) * error_values.penalty_ratio:
-            if seen_sl_counts is None:     # set it to dummy object, thus avoiding checks inside the loop
+            if seen_sl_counts is None:  # set it to dummy object, thus avoiding checks inside the loop
                 seen_sl_counts = {}
             if seen_sl_samples is not None:
                 seen_sl_samples.update(supporting_samples)
@@ -261,7 +263,7 @@ def ComputeHaplotypeLogProbabilities(haplotype, all_alleles, sublineage_samples,
     if len(ComputeHaplotypeLogProbabilities.lin_probs_cache) == 0x100000:
         for j in xrange(1024):  # evict older entries
             ComputeHaplotypeLogProbabilities.lin_probs_cache.popitem(False)
-    lin_probs_u = {l: v - len_penalty for l, v in lin_probs.viewitems()}    # cache unpenalised values
+    lin_probs_u = {l: v - len_penalty for l, v in lin_probs.viewitems()}  # cache unpenalised values
     ComputeHaplotypeLogProbabilities.lin_probs_cache[allele_set_str] = (lin_probs_u, tuple(seen_sl))
     return lin_probs
 
@@ -270,9 +272,9 @@ def ComputeSublineageLikelihoodsForRead(r, sl_alleles, approximate):
     contig = r.reference_name
     all_alleles = slist(sl_alleles.allele_incidence[contig][r.reference_start:r.reference_end], key=lambda i: i.begin)
     if len(all_alleles) == 0:
-        raise BackboneOnlyException(r.query_name)    # skip read if it is entirely on backbone-only section
+        raise BackboneOnlyException(r.query_name)  # skip read if it is entirely on backbone-only section
 
-    g_logger.debug("considering read {}".format(r.query_name))
+    logger.debug("considering read {}".format(r.query_name))
 
     have_incidence_info = any(len(sls) > 1 for sls in sl_alleles.sublineage_samples.viewvalues())
 
@@ -281,7 +283,7 @@ def ComputeSublineageLikelihoodsForRead(r, sl_alleles, approximate):
     seg_q_start, seg_r_start = 0, r.reference_start
     prev_allele_begin, prev_ivl = -1, None  # SNPs can overlap with start of insertions, and deletions can overlap
     for (cigar_op, cigar_len) in r.cigartuples:
-        if cigar_op == 0 or cigar_op == 7 or cigar_op == 8 or cigar_op == 2:     # M, =, X, D
+        if cigar_op == 0 or cigar_op == 7 or cigar_op == 8 or cigar_op == 2:  # M, =, X, D
             seg_r_end = seg_r_start + cigar_len
             # the range below might miss some overlapping del/mnp starting before seg_r_start, but unlikely
             for ivl in all_alleles.irange_key(seg_r_start, seg_r_end, inclusive=(True, False)):
@@ -309,7 +311,7 @@ def ComputeSublineageLikelihoodsForRead(r, sl_alleles, approximate):
             seg_r_start = seg_r_end
             if cigar_op != 2:
                 seg_q_start += cigar_len
-        elif cigar_op == 1:   # I
+        elif cigar_op == 1:  # I
             seg_q_end = seg_q_start + cigar_len
             for ivl in all_alleles.irange_key(seg_r_start, seg_r_start):
                 if have_incidence_info:
@@ -323,7 +325,7 @@ def ComputeSublineageLikelihoodsForRead(r, sl_alleles, approximate):
                     if have_incidence_info:
                         haplotype.add(ivl)
             seg_q_start = seg_q_end
-        elif cigar_op == 4:     # S
+        elif cigar_op == 4:  # S
             seg_q_start += cigar_len
         else:
             raise RuntimeError("cigar operation not supported")
@@ -339,11 +341,11 @@ def ComputeSublineageLikelihoodsForRead(r, sl_alleles, approximate):
         errs = implied_errors_()
         if approximate:  # P(alleles|l) = 1 if all alleles belong to l, else 0
             sl_likelihoods = {sl: 0 for sl, a_sl in alleles_per_sl.viewitems() if a_sl >= total_alleles}
-        else:     # P(alleles|l) = P(no-errors|l)
+        else:  # P(alleles|l) = P(no-errors|l)
             min_snp_count = (total_alleles - errs.max_violations) if errs.max_violations < total_alleles else 0
             sl_likelihoods = {l: errs.log_odds * (total_alleles - sc_l) for l, sc_l in alleles_per_sl.viewitems()
                               if sc_l >= min_snp_count}
-    g_logger.debug('sl_likelihoods: {}'.format(sl_likelihoods))
+    logger.debug('sl_likelihoods: {}'.format(sl_likelihoods))
     if not sl_likelihoods:
         raise InconsistentSupportException(r.query_name)
 
@@ -356,8 +358,8 @@ def ProcessSample(bam_in, regions, sl_alleles, min_reads, approximate):
     reads_range = None
     if not regions:
         regions = [(' ', 0, 3000000000, '*')]
-        g_logger.info("no bed file specified; entire BAM is 1 region")
-    elif all(r[0] == regions[0][0] for r in regions[1:]):   # save some work if all regions of interest on one contig
+        logger.info("no bed file specified; entire BAM is 1 region")
+    elif all(r[0] == regions[0][0] for r in regions[1:]):  # save some work if all regions of interest on one contig
         reads_range = (regions[0][0], min(r[1] for r in regions), max(r[2] for r in regions))
 
     coverage = {r[3]: 0 for r in regions}
@@ -369,7 +371,7 @@ def ProcessSample(bam_in, regions, sl_alleles, min_reads, approximate):
         r_name = r.query_name
         ignored_reads += 1  # we'll reset this if we don't end up ignoring the read
         if not alignment_is_ok(r):
-            g_logger.warning('read {} is ignored because MQ<=15 or too many soft-clips'.format(r_name))
+            logger.warning('read {} is ignored because MQ<=15 or too many soft-clips'.format(r_name))
             continue
 
         # find region that contains the read completely, allowing for the 5bp tolerance.
@@ -379,19 +381,19 @@ def ProcessSample(bam_in, regions, sl_alleles, min_reads, approximate):
                    None)
         if not rgn:  # no amplicon region contains the read, even after generously stretching region by 1 bp
             ill_fitting_reads += 1
-            g_logger.debug('read {}[{},{}] does not fit in any amplicon region.'.format(r_name,
-                                                                                        r.reference_start,
-                                                                                        r.reference_end))
+            logger.debug('read {}[{},{}] does not fit in any amplicon region.'.format(r_name,
+                                                                                      r.reference_start,
+                                                                                      r.reference_end))
             continue
-        g_logger.debug('processing read {} - start at {}'.format(r_name, r.reference_start))
+        logger.debug('processing read {} - start at {}'.format(r_name, r.reference_start))
         try:
             sublineage_likelihoods = ComputeSublineageLikelihoodsForRead(r, sl_alleles, approximate)
         except BackboneOnlyException:
-            g_logger.debug(
+            logger.debug(
                 'read {} is on backbone-only section of graph and carries no sublineage information'.format(r_name))
             continue
         except InconsistentSupportException:
-            g_logger.debug('read {} has inconsistent sublineage support and is therefore excluded.'.format(r_name))
+            logger.debug('read {} has inconsistent sublineage support and is therefore excluded.'.format(r_name))
             continue
 
         ignored_reads -= 1
@@ -399,16 +401,16 @@ def ProcessSample(bam_in, regions, sl_alleles, min_reads, approximate):
         reads_info.append((sublineage_likelihoods, p_alignment, rgn[3], r_name))
         coverage[rgn[3]] += p_alignment
         if len(reads_info) % 1000 == 0:
-            g_logger.debug('read in {} reads'.format(len(reads_info)))
+            logger.debug('read in {} reads'.format(len(reads_info)))
 
     if ignored_reads > 0:
-        g_logger.info('ignored {} reads because they are unsuitable or uninformative, {} are not amplicon constrained.'
-                      .format(ignored_reads, ill_fitting_reads))
+        logger.info('ignored {} reads because they are unsuitable or uninformative, {} are not amplicon constrained.'
+                    .format(ignored_reads, ill_fitting_reads))
 
     ignore_regions = {r: 0 for r, r_c in coverage.viewitems() if r_c < min_reads}
     if ignore_regions:
-        g_logger.info('also ignored {} reads in sparse regions {}.'.format(sum(coverage[r] for r in ignore_regions),
-                                                                           tuple(ignore_regions.viewkeys())))
+        logger.info('also ignored {} reads in sparse regions {}.'.format(sum(coverage[r] for r in ignore_regions),
+                                                                         tuple(ignore_regions.viewkeys())))
         coverage.update(ignore_regions)
 
     return reads_info, coverage
@@ -419,7 +421,7 @@ def EstimateSublineagePriors(reads_info, regional_coverage, sl_priors):
                                    if regional_coverage[r_r] > 0 and any(sl_priors.get(sl, 0) > 1e-20 for sl in r_l)]
     while any(lp > 0 for lp in sl_priors.viewvalues()) and n_rounds < 2500:
         n_rounds += 1
-        g_logger.debug('round {} - cur_lin_prevs: {}\n'.format(n_rounds, sl_priors))
+        logger.debug('round {} - cur_lin_prevs: {}\n'.format(n_rounds, sl_priors))
         updated_priors = {l: 0.0 for l in sublineages}
         for r_likelihoods, r_p in weighted_reads:
             r_posteriors = {l: sl_priors[l] * s for l, s in r_likelihoods.viewitems()
@@ -438,9 +440,9 @@ def EstimateSublineagePriors(reads_info, regional_coverage, sl_priors):
         else:
             break
     if n_rounds < 1000:
-        g_logger.info("Converged to a sublineage priors after {} iterations.".format(n_rounds))
+        logger.info("Converged to a sublineage priors after {} iterations.".format(n_rounds))
     else:
-        g_logger.warning("Unable to converge to sublineage priors even after {} iterations!".format(n_rounds))
+        logger.warning("Unable to converge to sublineage priors even after {} iterations!".format(n_rounds))
     return sl_priors
 
 
@@ -449,8 +451,8 @@ def FilterEstimatedPriors(sublineage_priors, reads_info, regional_coverage, sig_
 
     sublineage_popularity = {l: 0 for l in sublineage_priors.viewkeys()}
     t_name, t_weight, t_likelihoods = "?", 0, {}
-    t_info = sorted(reads_info, key=lambda ri: ri[3])   # t for template; sorted by name, so mates come together
-    t_info.append((t_likelihoods, t_weight, '', t_name))    # add a no-op footer to ensure last template gets processed
+    t_info = sorted(reads_info, key=lambda ri: ri[3])  # t for template; sorted by name, so mates come together
+    t_info.append((t_likelihoods, t_weight, '', t_name))  # add a no-op footer to ensure last template gets processed
     for r_likelihoods, r_weight, r_rgn, r_name in t_info:
         if r_name != t_name:
             if r_rgn and regional_coverage[r_rgn] <= 0:
@@ -469,13 +471,14 @@ def FilterEstimatedPriors(sublineage_priors, reads_info, regional_coverage, sig_
                 t_likelihoods[l] = t_likelihoods.get(l, 0) + l_l
 
     min_reads_weight = sum(sublineage_popularity.viewvalues()) * sig_level  # min weight for sublineage to be signal
-    kept_sublineages = {sl: sublineage_priors[sl] for sl, w in sublineage_popularity.viewitems() if w >= min_reads_weight}
+    kept_sublineages = {sl: sublineage_priors[sl] for sl, w in sublineage_popularity.viewitems() if
+                        w >= min_reads_weight}
     if not kept_sublineages:
-        g_logger.warning("No region has total reads weight {} for any sublineage. Blimey!".format(min_reads_weight))
+        logger.warning("No region has total reads weight {} for any sublineage. Blimey!".format(min_reads_weight))
     else:
         sublineage_priors = kept_sublineages
 
-    g_logger.info("Discarded these sublineages because they generated total read weight < {}: {}".format(
+    logger.info("Discarded these sublineages because they generated total read weight < {}: {}".format(
         min_reads_weight,
         utils.present_distribution((l, p) for l, p in sublineage_popularity.viewitems() if l not in kept_sublineages)
     ))
@@ -484,49 +487,14 @@ def FilterEstimatedPriors(sublineage_priors, reads_info, regional_coverage, sig_
     sl = lp_sum * sig_level
     for l, p in sublineage_priors.iteritems():
         if p < sl:
-            g_logger.warning("Discarding popular sublineage {} because {} < {}".format(l, p, sl))
+            logger.warning("Discarding popular sublineage {} because {} < {}".format(l, p, sl))
             sublineage_priors[l] = 0
             lp_sum -= p
     return utils.present_distribution((l, p / lp_sum) for l, p in sublineage_priors.viewitems())
 
 
-def WriteAnnotatedOutputBam(bam_out_name, bam_in_name, reads_info, filtered_priors, all_sublineages):
-    from copy import copy
-    with pysam.AlignmentFile(bam_in_name, 'rb') as bam_in:
-        header = copy(bam_in.header)    # shallow copy
-        all_priors = {l: 0 for l in all_sublineages}
-        all_priors.update({l: round(p, 3) for l, p in filtered_priors})
-        comments = copy(header.get('CO', []))    # shallow copy
-        comments.append("Estimated sublineage priors: {}".format(','.join("{}={:.3f}".format(l, p)
-                                                                          for l, p in sorted(all_priors.viewitems()))))
-        comments.append("Sublineage-discriminating reads have posteriors encoded in XL tag.")
-        header['CO'] = comments
-
-        programs = copy(header.get('PG', []))    # shallow copy
-        last_id = programs[-1]['ID'] if len(programs) > 0 else ''
-        programs.append({'ID': last_id + '.coinf-annotation' if last_id else 'coinf-annotation',
-                         'PN': sys.argv[0],
-                         'Cl': ' '.join(sys.argv[1:]),
-                         'PP': last_id,
-                         'DS': "Discriminating reads annotated with posterior probabilities of generating sublineages"})
-        header['PG'] = programs
-        with pysam.AlignmentFile(bam_out_name, 'wb', header=header) as bam_f:
-            r_idx, r_name = 0, reads_info[0][3]
-            for r in bam_in.fetch():
-                if r.query_name == r_name:
-                    r_likelihoods = reads_info[r_idx][0]
-                    norm = sum(r_likelihoods.viewvalues())
-                    if norm > 0:
-                        r_likelihoods = ('{}={}'.format(l, round(p / norm, 3))
-                                         for l, p in sorted(r_likelihoods.viewitems(), key=lambda (_, v): -v))
-                        r.set_tag('XL', ','.join(r_likelihoods))
-                    r_idx += 1
-                    r_name = reads_info[r_idx][3] if r_idx < len(reads_info) else ' '   # space is an invalid read name
-                bam_f.write(r)
-
-
 def EstimateSampleCompositions(sampleBam, bedRegions, sl_alleles, approx, sigLevel, minCoverage, minContrib, minLdsnps):
-    g_logger.info("\nStarting analysis!")
+    logger.info("\nStarting analysis!")
     if not path.isfile(sampleBam + '.bai'):
         pysam.index(sampleBam)
 
@@ -540,23 +508,24 @@ def EstimateSampleCompositions(sampleBam, bedRegions, sl_alleles, approx, sigLev
 
         reads_info, coverage = ProcessSample(bam_in, bedRegions, sl_alleles, minCoverage, approx)
         if not reads_info:
-            g_logger.error("No reads to process! Please check the BED regions are compatible with {}".format(sampleBam))
+            logger.error("No reads to process! Please check the BED regions are compatible with {}".format(sampleBam))
             return (('?', 0),), reads_info
 
         sublineage_priors = EstimateSublineagePriors(reads_info, coverage, sublineage_priors)
-        g_logger.info("Estimated sublineage priors as {}".format(utils.present_distribution(sublineage_priors)))
+        logger.info("Estimated sublineage priors as {}".format(utils.present_distribution(sublineage_priors)))
 
         filtered_priors = FilterEstimatedPriors(sublineage_priors, reads_info, coverage, sigLevel)
-        g_logger.info("After filtering out noise and arranging, we have {}".format(filtered_priors))
+        logger.info("After filtering out noise and arranging, we have {}".format(filtered_priors))
 
         return filtered_priors, reads_info
 
 
 class ConcurrentSampleLogger(logging.LoggerAdapter):
+
     def __init__(self, logger, extra=None):
         logging.LoggerAdapter.__init__(self, logger, extra)
         from threading import local  # this construction because I was working with threads, innocently. Leaving it in.
-        self. name_cache = local()
+        self.name_cache = local()
         self.name_cache.sample = None
 
     def setSample(self, sample):
@@ -570,51 +539,36 @@ class ConcurrentSampleLogger(logging.LoggerAdapter):
 
 # ==================================================================================================================== #
 if __name__ == '__main__':
+
     g_args = ParseArgs()
 
     logging.basicConfig(stream=sys.stderr)
-    g_logger = logging.getLogger()
-    g_logger.setLevel(logging.DEBUG if g_args.debug else logging.INFO)
-    g_logger = ConcurrentSampleLogger(g_logger)
+    logger = logging.getLogger()
+    logger.setLevel(logging.DEBUG if g_args.debug else logging.INFO)
+    logger = ConcurrentSampleLogger(logger)
 
-    if g_args.x_file and path.isfile(g_args.x_file):
-        from re import compile
-        x_samples = compile(r'\w+')
-        x_samples = frozenset(w for l in open(g_args.x_file) for w in x_samples.findall(l)
-                              if l.strip() and not l.strip().startswith('#'))
-    else:
-        x_samples = frozenset(map(lambda bf: bf[:bf.index('_') if bf.startswith('PAP') else bf.rindex('.')],
-                              g_args.bams_in))
+    x_samples = frozenset(map(lambda bf: bf[:bf.rindex('.')], g_args.bams_in))
     sl_alleles = utils.readSublineageAlleles(g_args.allele_sl_info, g_args.valid_allele_support, x_samples)
-    g_logger.info("Relevant alleles = {}".format(sum(itertools.imap(len, sl_alleles.allele_incidence.viewvalues()))))
+    logger.info("Relevant alleles = {}".format(sum(itertools.imap(len, sl_alleles.allele_incidence.viewvalues()))))
 
     sublineages = frozenset(sl_alleles.sublineage_samples.viewkeys())
     assert sublineages == frozenset(sl_alleles.sublineage_allele_counts.viewkeys())
 
     bedRegions = utils.readBedFile(g_args.bed_file) if g_args.bed_file else None
 
+
     def analyse_single_bam(bam_in):
-        g_logger.setSample(bam_in)
+        logger.setSample(bam_in)
         filtered_priors, reads_info = EstimateSampleCompositions(bam_in, bedRegions, sl_alleles, g_args.approx,
                                                                  g_args.sig_level, g_args.min_reads,
                                                                  g_args.min_contribution, g_args.min_ldsnp_coverage)
-        if isinstance(g_args.out_name, str) and bool(reads_info):
-            bam_out_name = g_args.out_name + '.' + path.split(bam_in)[1].replace(".sorted.bam",
-                                                                                 ".coinfection_annotated.bam")
-            WriteAnnotatedOutputBam(bam_out_name, bam_in, reads_info, filtered_priors, sublineages)
+
         return bam_in, ','.join('{}={}'.format(l, s) for l, s in filtered_priors)
 
-    results, pending = {}, None
-    samples_per_cpu = len(g_args.bams_in) if g_args.debug else max(len(g_args.bams_in) / concurrent.cpu_count(), 1)
-    if len(g_args.bams_in) > samples_per_cpu:
-        thread_pool = concurrent.Pool(concurrent.cpu_count() - 1)
-        pending = thread_pool.map_async(analyse_single_bam, g_args.bams_in[samples_per_cpu:])
-        thread_pool.close()
 
-    results.update(analyse_single_bam(b_in) for b_in in g_args.bams_in[:samples_per_cpu])
-    if pending:
-        results.update(pending.get())  # pending.get() blocks
+    results = {}
+    results.update(analyse_single_bam(b_in) for b_in in g_args.bams_in)
 
     with (open(g_args.out_name + '.coinfection_estimates.txt', 'w') if g_args.out_name else sys.stdout) as output:
-        for s in g_args.bams_in:   # print results in order
+        for s in g_args.bams_in:  # print results in order
             output.write('\t'.join((s, results[s] + '\n')))
