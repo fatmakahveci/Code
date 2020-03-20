@@ -43,7 +43,7 @@ def readFasta(f):
 
 
 # ignore_ref_alleles is useful when comparing two allele sets, since ref alleles are always present in both set but
-# only reported where there is an alt allele also. Used in sublineage-proxy-calc.py, CollectStrainAlleles()
+# only reported where there is an alt allele also. Used in strain-proxy-calc.py, CollectStrainAlleles()
 def readStrainAlleles(strains_vcf, valid_allele_support, exclude_samples, ignore_ref_alleles=False):
     from pysam import VariantFile
 
