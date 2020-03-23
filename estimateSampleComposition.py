@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python3.7
 
 """
 It reads BAM-formatted files and a population VCF file with known alleles and strains. It detects reads mapped to
@@ -69,10 +69,10 @@ def readBedFile(f):
 
     return regions
 
-def present_distribution(distr, sig_fig=3):
+def present_distribution(distr, sig_fig = 3):
 
     if isinstance(distr, dict):
-        distr = distr.viewitems()
+        distr = distr.items()
 
     noise = 10 ** -sig_fig
 
@@ -83,15 +83,19 @@ def present_distribution(distr, sig_fig=3):
 def readStrainAlleles(strains_vcf, valid_allele_support, exclude_samples, ignore_ref_alleles=False):
 
     def common_prefix_length(a, b):
-        return sum(1 for _ in itertools.takewhile(lambda ab: ab[0] == ab[1], itertools.izip(a, b)))
+        return sum(1 for _ in itertools.takewhile(lambda ab: ab[0] == ab[1], zip(a, b)))
 
     vcf = VariantFile(strains_vcf)
     strain_samples = {s_rec['ID']: set(s_rec['GENOMES'].split(';')) for s_rec in filter(lambda rec: rec.key == 'SAMPLE', vcf.header.records)}
 
     if strain_samples:  # inferred VCF; strain->samples encoded in ##SAMPLE=<ID=slin,GENOMES=s1;s2...> fields
 
-        sample_strains = [next((sl for sl, sl_s in strain_samples.viewitems() if s in sl_s), None) if s not in exclude_samples else None for s in vcf.header.samples]
-        strain_samples = {sl: frozenset(i for i, _ in i_sl) for sl, i_sl in itertools.groupby(sorted(enumerate(sample_strains), key=lambda (_, sl): sl), key=lambda (_, sl): sl) if sl}
+        sample_strains = [next((sl for sl, sl_s in strain_samples.items() if s in sl_s), None) if s not in exclude_samples else None for s in vcf.header.samples]
+        strain_samples = dict()
+        for key, sample_strain in itertools.groupby(sorted(enumerate(sample_strains), key = lambda x : x[1]), key = lambda x : x[1]):
+            strain_samples[key] = set()
+            for key, value in list(sample_strain):
+                strain_samples[value].add(key)
 
     else:   # given VCF; samples are strains
 
@@ -115,16 +119,16 @@ def readStrainAlleles(strains_vcf, valid_allele_support, exclude_samples, ignore
         s_strain_samples = strain_samples
         s_sample_strains = sample_strains
         s_useful_entropy = 0.999 * math.log(len(s_strain_samples))
-        s_sig_sample_count = {s: min(len(s_s), valid_allele_support) for s, s_s in strain_samples.viewitems()}
+        s_sig_sample_count = {s: min(len(s_s), valid_allele_support) for s, s_s in strain_samples.items()}
 
         @staticmethod
         def is_discriminating(histogram):
 
-            return bool(histogram) if len(histogram) < len(AlleleOcc.s_strain_samples) else (AlleleOcc.distr_entropy(histogram.viewvalues()) < AlleleOcc.s_useful_entropy)
+            return bool(histogram) if len(histogram) < len(AlleleOcc.s_strain_samples) else (AlleleOcc.distr_entropy(histogram.values()) < AlleleOcc.s_useful_entropy)
 
         @staticmethod
         def counts_to_frequencies(sl_counts):
-            return {sl: float(slc) / len(AlleleOcc.s_strain_samples[sl]) for sl, slc in sl_counts.viewitems() if slc >= AlleleOcc.s_sig_sample_count[sl]}
+            return {sl: float(slc) / len(AlleleOcc.s_strain_samples[sl]) for sl, slc in sl_counts.items() if slc >= AlleleOcc.s_sig_sample_count[sl]}
 
         def __init__(self, allele, strains, samples):
 
@@ -174,12 +178,12 @@ def readStrainAlleles(strains_vcf, valid_allele_support, exclude_samples, ignore
             return AlleleOcc(self.allele, subl, smp)
 
     allele_incidence_per_contig = defaultdict(IntervalTree)
-    sl_allele_counts = {s: 0 for s in strain_samples.viewkeys()}
+    sl_allele_counts = {s: 0 for s in strain_samples.keys()}
     ignored_alleles = set()
 
     for variant in vcf.fetch():
 
-        allele_occs, allele_strain_counts = defaultdict(set), [{} for _ in xrange(len(variant.alleles))]
+        allele_occs, allele_strain_counts = defaultdict(set), [{} for _ in range(len(variant.alleles))]
         missing = 0
 
         for sample_gt in variant.samples.itervalues():
@@ -226,7 +230,7 @@ def readStrainAlleles(strains_vcf, valid_allele_support, exclude_samples, ignore
                     for sl in slc_r:
                         sl_allele_counts[sl] += 1  # not exact because in rare instances we discard some alleles
 
-            for va, slc_a in itertools.izip(variant.alts, allele_strain_counts[1:]):
+            for va, slc_a in zip(variant.alts, allele_strain_counts[1:]):
 
                 if va not in allele_occs:
                     continue
@@ -289,7 +293,7 @@ def GuesstimateInitialStrainPriors(bam_in, sl_alleles, bed_regions, min_reads, m
                 if bc > n_mc:
 
                     # bc = bc / float(coverage)   # P(allele)
-                    for cur_sl, cur_sl_f in disc_allele.strains.viewitems():
+                    for cur_sl, cur_sl_f in disc_allele.strains.items():
                         n_c, s_c = sl_alleles_contrib[cur_sl]
                         sl_alleles_contrib[cur_sl] = (n_c + 1, s_c + bc * cur_sl_f)  # coverage, P(allele)P(sl|allele)
 
@@ -301,7 +305,7 @@ def GuesstimateInitialStrainPriors(bam_in, sl_alleles, bed_regions, min_reads, m
 
     sl_alleles_contrib, allele_incidence = defaultdict(lambda: (0, 0)), sl_alleles.allele_incidence
     base_frequency = numpy.zeros(256, dtype=numpy.int32)
-    all_snps = slist(((ct, rg) for ct, rgns in allele_incidence.viewitems() for rg in rgns if rg.end == rg.begin + 1 and (not bed_regions or any(brg[0] == ct and brg[2] >= rg.end and brg[1] <= rg.begin for brg in bed_regions))), key=allele_locus)
+    all_snps = slist(((ct, rg) for ct, rgns in allele_incidence.items() for rg in rgns if rg.end == rg.begin + 1 and (not bed_regions or any(brg[0] == ct and brg[2] >= rg.end and brg[1] <= rg.begin for brg in bed_regions))), key=allele_locus)
 
     for (contig, pos), snps in itertools.groupby(all_snps, key=allele_locus):
 
@@ -324,18 +328,18 @@ def GuesstimateInitialStrainPriors(bam_in, sl_alleles, bed_regions, min_reads, m
 
     if lin_cutoff > 0:
 
-        lc_ok = {sl: ac[0] > lin_cutoff * sl_alleles.strain_allele_counts[sl] for sl, ac in sl_alleles_contrib.viewitems()}
-        sl_priors = {sl: ac[0] if lc_ok[sl] else 0.0 for sl, ac in sl_alleles_contrib.viewitems()}
+        lc_ok = {sl: ac[0] > lin_cutoff * sl_alleles.strain_allele_counts[sl] for sl, ac in sl_alleles_contrib.items()}
+        sl_priors = {sl: ac[0] if lc_ok[sl] else 0.0 for sl, ac in sl_alleles_contrib.items()}
 
     else:
-        sl_priors = {sl: ac[0] for sl, ac in sl_alleles_contrib.viewitems()}
+        sl_priors = {sl: ac[0] for sl, ac in sl_alleles_contrib.items()}
 
     logger.debug('sl_priors before normalisation: {}'.format(sl_priors))
 
-    slp_norm = float(sum(sl_priors.viewvalues()))
+    slp_norm = float(sum(sl_priors.values()))
 
     if slp_norm > 0:
-        sl_priors = {l: v / slp_norm for l, v in sl_priors.viewitems()}
+        sl_priors = {l: v / slp_norm for l, v in sl_priors.items()}
 
     logger.info("Initialised strain distribution: {}\n".format(present_distribution(sl_priors)))
 
@@ -364,7 +368,7 @@ def ComputeHaplotypeLogProbabilities_approx(haplotype, all_alleles, strain_sampl
         all_allele_samples = frozenset(itertools.chain.from_iterable(ivl.data.samples for ivl in all_alleles))
         error_values = implied_errors_()
 
-        for l, ls in strain_samples.viewitems():
+        for l, ls in strain_samples.items():
 
             l_samples, all_l_samples = ls & supporting_samples, ls & all_allele_samples
 
@@ -387,7 +391,7 @@ def ComputeHaplotypeLogProbabilities_approx(haplotype, all_alleles, strain_sampl
     # OK to limit cache size because only proximate alleles will be in cache. BAM is traversed in order, so forget past.
     if len(ComputeHaplotypeLogProbabilities_approx.lin_probs_cache) == 0x100000:
 
-        for j in xrange(1024):  # evict older entries
+        for j in range(1024):  # evict older entries
 
             ComputeHaplotypeLogProbabilities_approx.lin_probs_cache.popitem(False)
 
@@ -418,7 +422,7 @@ def ComputeHaplotypeLogProbabilities(haplotype, all_alleles, strain_samples, len
 
                 seen_sl_counts[l] = seen_sl_counts.get(l, 0) + 1
 
-        return {l: v + len_penalty for l, v in lin_probs_x[0].viewitems()}
+        return {l: v + len_penalty for l, v in lin_probs_x[0].items()}
 
     error_values = implied_errors_()
 
@@ -433,7 +437,7 @@ def ComputeHaplotypeLogProbabilities(haplotype, all_alleles, strain_samples, len
         # estimate of supporting samples needed for subset to win
         # req_samples = int(req_samples * ComputeAlleleSetLogProbabilities.ok_odds
 
-        for j in xrange(n_alleles):  # n_alleles iterations, i.e. n!/(n-m)! complexity
+        for j in range(n_alleles):  # n_alleles iterations, i.e. n!/(n-m)! complexity
 
             excluded_ivl = haplotype[j]
 
@@ -444,23 +448,23 @@ def ComputeHaplotypeLogProbabilities(haplotype, all_alleles, strain_samples, len
 
             del all_alleles[exc_a[0]:exc_a[1]]
 
-            sub_lin_prob = ComputeHaplotypeLogProbabilities(haplotype, all_alleles, strain_samples, sub_penalty, seen_subs, seen_sub_samples).viewitems()
+            sub_lin_prob = ComputeHaplotypeLogProbabilities(haplotype, all_alleles, strain_samples, sub_penalty, seen_subs, seen_sub_samples).items()
 
             for l, v in sub_lin_prob:
 
                 if v > lin_probs.get(l, -1000):
                     lin_probs[l] = v
 
-            haplotype.insert(j, excluded_ivl)
+            haplotype.add(excluded_ivl)
 
             for i, ea in enumerate(excluded_alleles):
 
-                all_alleles.insert(exc_a[0] + i, ea)
+                all_alleles.add(ea)
 
         seen_subs = tuple(l for l, lc in seen_subs if lc == n_alleles)
 
     else:
-        seen_subs, seen_sub_samples = strain_samples.viewkeys(), tuple()
+        seen_subs, seen_sub_samples = strain_samples.keys(), tuple()
 
     seen_sl = []
     if len(seen_subs) > 0:  # each strain consistent with a set is also consistent with all its subsets
@@ -479,7 +483,7 @@ def ComputeHaplotypeLogProbabilities(haplotype, all_alleles, strain_samples, len
             all_allele_samples = frozenset(itertools.chain.from_iterable(ivl.data.samples for ivl in all_alleles))
             error_values = implied_errors_()
 
-            for l, ls in strain_samples.viewitems():
+            for l, ls in strain_samples.items():
                 l_samples, all_l_samples = ls & supporting_samples, ls & all_allele_samples
 
                 if len(l_samples) >= min(int(args["--valid_allele_support"]), len(strain_samples[l])):  # ignore low evidence
@@ -504,10 +508,10 @@ def ComputeHaplotypeLogProbabilities(haplotype, all_alleles, strain_samples, len
     # 30*29*28*27*26 = 17,100,720
     if len(ComputeHaplotypeLogProbabilities.lin_probs_cache) == 0x100000:
 
-        for j in xrange(1024):  # evict older entries
+        for j in range(1024):  # evict older entries
             ComputeHaplotypeLogProbabilities.lin_probs_cache.popitem(False)
 
-    lin_probs_u = {l: v - len_penalty for l, v in lin_probs.viewitems()}    # cache unpenalised values
+    lin_probs_u = {l: v - len_penalty for l, v in lin_probs.items()}    # cache unpenalised values
     ComputeHaplotypeLogProbabilities.lin_probs_cache[allele_set_str] = (lin_probs_u, tuple(seen_sl))
 
     return lin_probs
@@ -524,7 +528,7 @@ def ComputeStrainLikelihoodsForRead(r, sl_alleles, approximate):
 
     logger.debug("considering read {}".format(r.query_name))
 
-    have_incidence_info = any(len(sls) > 1 for sls in sl_alleles.strain_samples.viewvalues())
+    have_incidence_info = any(len(sls) > 1 for sls in sl_alleles.strain_samples.values())
 
     haplotype, alleles_list = slist(key=all_alleles.key), slist(key=all_alleles.key)
     total_alleles, alleles_per_sl = 0, defaultdict(lambda: 0)
@@ -626,11 +630,11 @@ def ComputeStrainLikelihoodsForRead(r, sl_alleles, approximate):
         errs = implied_errors_()
 
         if approximate:  # P(alleles|l) = 1 if all alleles belong to l, else 0
-            sl_likelihoods = {sl: 0 for sl, a_sl in alleles_per_sl.viewitems() if a_sl >= total_alleles}
+            sl_likelihoods = {sl: 0 for sl, a_sl in alleles_per_sl.items() if a_sl >= total_alleles}
 
         else:     # P(alleles|l) = P(no-errors|l)
             min_snp_count = (total_alleles - errs.max_violations) if errs.max_violations < total_alleles else 0
-            sl_likelihoods = {l: errs.log_odds * (total_alleles - sc_l) for l, sc_l in alleles_per_sl.viewitems() if sc_l >= min_snp_count}
+            sl_likelihoods = {l: errs.log_odds * (total_alleles - sc_l) for l, sc_l in alleles_per_sl.items() if sc_l >= min_snp_count}
 
     logger.debug('sl_likelihoods: {}'.format(sl_likelihoods))
 
@@ -638,10 +642,10 @@ def ComputeStrainLikelihoodsForRead(r, sl_alleles, approximate):
 
         raise InconsistentSupportException(r.query_name)
 
-    max_rw = max(sl_likelihoods.viewvalues())  # offset all values so maximum is computable (i.e. scale all likelihoods)
+    max_rw = max(sl_likelihoods.values())  # offset all values so maximum is computable (i.e. scale all likelihoods)
     offset = -(max_rw + 22) if max_rw < -22 else 0
 
-    return {l: math.exp(sl_likelihoods[l] + offset) for l in sl_likelihoods.viewkeys()}  # detected strains only
+    return {l: math.exp(sl_likelihoods[l] + offset) for l in sl_likelihoods.keys()}  # detected strains only
 
 
 def ProcessSample(bam_in, regions, sl_alleles, min_reads, approximate):
@@ -670,9 +674,9 @@ def ProcessSample(bam_in, regions, sl_alleles, min_reads, approximate):
             logger.warning('read {} is ignored because MQ<=15 or too many soft-clips'.format(r_name))
 
             continue
-
-        # find region that contains the read completely, allowing for the 5bp tolerance.
-        rgn = next(itertools.dropwhile(lambda (c, s, e, _): (e + 5) < r.reference_end or s > (r.reference_start + 5) or (c != ' ' and r.reference_name != c), regions), None)
+            
+        # find region that contains the read completely, allowing for the 5bp tolerance. cse_
+        rgn = next(itertools.dropwhile(lambda region: (region[2] + 5) < r.reference_end or region[1] > (r.reference_start + 5) or (region[0] != ' ' and r.reference_name != region[0]), regions), None)
 
         if not rgn:  # no amplicon region contains the read, even after generously stretching region by 1 bp
 
@@ -710,11 +714,11 @@ def ProcessSample(bam_in, regions, sl_alleles, min_reads, approximate):
         logger.info('ignored {} reads because they are unsuitable or uninformative, {} are not amplicon constrained.'
                       .format(ignored_reads, ill_fitting_reads))
 
-    ignore_regions = {r: 0 for r, r_c in coverage.viewitems() if r_c < min_reads}
+    ignore_regions = {r: 0 for r, r_c in coverage.items() if r_c < min_reads}
 
     if ignore_regions:
         logger.info('also ignored {} reads in sparse regions {}.'.format(sum(coverage[r] for r in ignore_regions),
-                                                                           tuple(ignore_regions.viewkeys())))
+                                                                           tuple(ignore_regions.keys())))
         coverage.update(ignore_regions)
 
     return reads_info, coverage
@@ -724,7 +728,7 @@ def EstimateStrainPriors(reads_info, regional_coverage, sl_priors):
 
     n_rounds, weighted_reads = 0, [(r_l, r_p / regional_coverage[r_r]) for r_l, r_p, r_r, r_n in reads_info if regional_coverage[r_r] > 0 and any(sl_priors.get(sl, 0) > 1e-20 for sl in r_l)]
 
-    while any(lp > 0 for lp in sl_priors.viewvalues()) and n_rounds < 2500:
+    while any(lp > 0 for lp in sl_priors.values()) and n_rounds < 2500:
 
         n_rounds += 1
         logger.debug('round {} - cur_lin_prevs: {}\n'.format(n_rounds, sl_priors))
@@ -732,20 +736,20 @@ def EstimateStrainPriors(reads_info, regional_coverage, sl_priors):
 
         for r_likelihoods, r_p in weighted_reads:
 
-            r_posteriors = {l: sl_priors[l] * s for l, s in r_likelihoods.viewitems() if sl_priors[l] > 0}
-            normalising_factor = sum(r_posteriors.viewvalues())
+            r_posteriors = {l: sl_priors[l] * s for l, s in r_likelihoods.items() if sl_priors[l] > 0}
+            normalising_factor = sum(r_posteriors.values())
 
             if normalising_factor > 0:
 
                 normalising_factor = r_p / normalising_factor
-                updated_priors.update({l: updated_priors[l] + normalising_factor * s for l, s in r_posteriors.viewitems()})
+                updated_priors.update({l: updated_priors[l] + normalising_factor * s for l, s in r_posteriors.items()})
 
-        normalising_factor = sum(updated_priors.viewvalues())
+        normalising_factor = sum(updated_priors.values())
 
         if normalising_factor > 0:
-            updated_priors = {l: v / normalising_factor for l, v in updated_priors.viewitems()}
+            updated_priors = {l: v / normalising_factor for l, v in updated_priors.items()}
 
-        if any(abs(v - sl_priors[l]) > float(args["--convergence_threshold"]) for l, v in updated_priors.viewitems()):
+        if any(abs(v - sl_priors[l]) > float(args["--convergence_threshold"]) for l, v in updated_priors.items()):
             sl_priors = updated_priors
 
         else:
@@ -764,7 +768,7 @@ def FilterEstimatedPriors(strain_priors, reads_info, regional_coverage, sig_leve
 
     from random import choice
 
-    strain_popularity = {l: 0 for l in strain_priors.viewkeys()}
+    strain_popularity = {l: 0 for l in strain_priors.keys()}
     t_name, t_weight, t_likelihoods = "?", 0, {}
     t_info = sorted(reads_info, key=lambda ri: ri[3])   # t for template; sorted by name, so mates come together
     t_info.append((t_likelihoods, t_weight, '', t_name))    # add a no-op footer to ensure last template gets processed
@@ -776,9 +780,9 @@ def FilterEstimatedPriors(strain_priors, reads_info, regional_coverage, sig_leve
             if r_rgn and regional_coverage[r_rgn] <= 0:
                 continue
 
-            max_p = max(t_likelihoods.get(l, 0) * lp for l, lp in strain_priors.viewitems())
+            max_p = max(t_likelihoods.get(l, 0) * lp for l, lp in strain_priors.items())
             if max_p > 0:
-                sl_s = tuple(l for l, lp in strain_priors.viewitems()
+                sl_s = tuple(l for l, lp in strain_priors.items()
                              if lp >= sig_level and max_p - t_likelihoods.get(l, 0) * lp < 1e-12)
                 if sl_s:
                     sl = sl_s[0] if len(sl_s) == 1 else choice(sl_s)  # estimated read origin
@@ -787,11 +791,11 @@ def FilterEstimatedPriors(strain_priors, reads_info, regional_coverage, sig_leve
 
         else:
             t_weight += r_weight
-            for l, l_l in r_likelihoods.viewitems():
+            for l, l_l in r_likelihoods.items():
                 t_likelihoods[l] = t_likelihoods.get(l, 0) + l_l
 
-    min_reads_weight = sum(strain_popularity.viewvalues()) * sig_level  # min weight for strain to be signal
-    kept_strains = {sl: strain_priors[sl] for sl, w in strain_popularity.viewitems() if w >= min_reads_weight}
+    min_reads_weight = sum(strain_popularity.values()) * sig_level  # min weight for strain to be signal
+    kept_strains = {sl: strain_priors[sl] for sl, w in strain_popularity.items() if w >= min_reads_weight}
 
     if not kept_strains:
         logger.warning("No region has total reads weight {} for any strain. Blimey!".format(min_reads_weight))
@@ -799,12 +803,12 @@ def FilterEstimatedPriors(strain_priors, reads_info, regional_coverage, sig_leve
     else:
         strain_priors = kept_strains
 
-    logger.info("Discarded these strains because they generated total read weight < {}: {}".format(min_reads_weight, present_distribution((l, p) for l, p in strain_popularity.viewitems() if l not in kept_strains)))
+    logger.info("Discarded these strains because they generated total read weight < {}: {}".format(min_reads_weight, present_distribution((l, p) for l, p in strain_popularity.items() if l not in kept_strains)))
 
-    lp_sum = sum(strain_priors.viewvalues())
+    lp_sum = sum(strain_priors.values())
     sl = lp_sum * sig_level
 
-    for l, p in strain_priors.iteritems():
+    for l, p in strain_priors.items():
 
         if p < sl:
 
@@ -812,7 +816,7 @@ def FilterEstimatedPriors(strain_priors, reads_info, regional_coverage, sig_leve
             strain_priors[l] = 0
             lp_sum -= p
 
-    return present_distribution((l, p / lp_sum) for l, p in strain_priors.viewitems())
+    return present_distribution((l, p / lp_sum) for l, p in strain_priors.items())
 
 def WriteAnnotatedOutputBam(bam_out_name, bam_in_name, reads_info, filtered_priors, all_strains):
 
@@ -825,7 +829,7 @@ def WriteAnnotatedOutputBam(bam_out_name, bam_in_name, reads_info, filtered_prio
         all_priors.update({l: round(p, 3) for l, p in filtered_priors})
 
         comments = copy(header.get('CO', []))    # shallow copy
-        comments.append("Estimated strain priors: {}".format(','.join("{}={:.3f}".format(l, p) for l, p in sorted(all_priors.viewitems()))))
+        comments.append("Estimated strain priors: {}".format(','.join("{}={:.3f}".format(l, p) for l, p in sorted(all_priors.items()))))
         comments.append("Strain-discriminating reads have posteriors encoded in XL tag.")
         header['CO'] = comments
 
@@ -847,12 +851,12 @@ def WriteAnnotatedOutputBam(bam_out_name, bam_in_name, reads_info, filtered_prio
                 if r.query_name == r_name:
 
                     r_likelihoods = reads_info[r_idx][0]
-                    norm = sum(r_likelihoods.viewvalues())
+                    norm = sum(r_likelihoods.values())
 
                     if norm > 0:
 
                         r_likelihoods = ('{}={}'.format(l, round(p / norm, 3))
-                                         for l, p in sorted(r_likelihoods.viewitems(), key=lambda (_, v): -v))
+                                         for l, p in sorted(r_likelihoods.items(), key=lambda _, v: -v))
                         r.set_tag('XL', ','.join(r_likelihoods))
 
                     r_idx += 1
@@ -915,10 +919,10 @@ if __name__ == '__main__':
 
     sl_alleles = readStrainAlleles(args["-v"], int(args["--valid_allele_support"]), x_samples)
 
-    logger.info("Relevant alleles = {}".format(sum(itertools.imap(len, sl_alleles.allele_incidence.viewvalues()))))
+    logger.info("Relevant alleles = {}".format(sum(map(len, sl_alleles.allele_incidence.values()))))
 
-    strains = frozenset(sl_alleles.strain_samples.viewkeys())
-    assert strains == frozenset(sl_alleles.strain_allele_counts.viewkeys())
+    strains = frozenset(sl_alleles.strain_samples.keys())
+    assert strains == frozenset(sl_alleles.strain_allele_counts.keys())
 
     bedRegions = readBedFile(args["-b"]) if args["-b"] else None
 
