@@ -674,7 +674,7 @@ def ProcessSample(bam_in, regions, sl_alleles, min_reads, approximate):
             logger.warning('read {} is ignored because MQ<=15 or too many soft-clips'.format(r_name))
 
             continue
-            
+
         # find region that contains the read completely, allowing for the 5bp tolerance. cse_
         rgn = next(itertools.dropwhile(lambda region: (region[2] + 5) < r.reference_end or region[1] > (r.reference_start + 5) or (region[0] != ' ' and r.reference_name != region[0]), regions), None)
 
