@@ -611,8 +611,11 @@ def ComputeStrainLikelihoodsForRead(r, sl_alleles, approximate):
 
             seg_q_start = seg_q_end
 
-        elif cigar_op == 4:     # S
+        elif cigar_op == 4:     # Soft clip on the read
             seg_q_start += cigar_len
+
+        elif cigar_op == 5: # Hard clip on the read
+            continue
 
         else:
             raise RuntimeError("cigar operation not supported")
