@@ -18,3 +18,21 @@ for val in ${cluster20[@]};do
     seqtk sample -s100 ${val}_1.fastq 20000 > ${val}_1.20.fastq
     seqtk sample -s100 ${val}_2.fastq 20000 > ${val}_2.20.fastq
 done
+
+# S.agalactiae
+declare -a cluster=( "SRR2559327" "SRR3131147" "DRR039843" "SRR5477434" "SRR1030409" "SRR1015318" )
+
+for val in ${cluster[@]};do
+    seqtk sample -s100 ${val}_1.fastq 100000 > ${val}_1.100.fastq
+    seqtk sample -s100 ${val}_2.fastq 100000 > ${val}_2.100.fastq
+done
+
+for val in ${cluster[@]};do
+    seqtk sample -s100 ${val}_1.fastq 30000 > ${val}_1.30.fastq
+    seqtk sample -s100 ${val}_2.fastq 30000 > ${val}_2.30.fastq
+done
+
+for val in ${cluster[@]};do
+    seqtk sample -s100 ${val}_1.fastq 20000 > ${val}_1.20.fastq
+    seqtk sample -s100 ${val}_2.fastq 20000 > ${val}_2.20.fastq
+done
