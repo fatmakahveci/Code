@@ -36,7 +36,7 @@ if __name__ == "__main__":
 	
 	ax1.title.set_text("A.baumannii")
 	
-	ax1.set_xlabel('Coverage')
+	ax1.set_xlabel('Number of core genes')
 	ax1.set_ylabel('Run time (sec)')
 	
 	ax1.set(xlim=(0, 1010), ylim=(0, 12010))
@@ -74,7 +74,7 @@ if __name__ == "__main__":
 	
 	ax2.title.set_text("S.agalactiae")
 	
-	ax2.set_xlabel('Coverage')
+	ax2.set_xlabel('Number of core genes')
 	ax2.set_ylabel('Run time (sec)')
 	
 	ax2.set(xlim=(0, 1010), ylim=(0, 12010))
