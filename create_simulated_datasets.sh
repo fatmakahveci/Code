@@ -19,7 +19,7 @@ for val in ${cluster20[@]};do
     seqtk sample -s100 ${val}_2.fastq 20000 > ${val}_2.20.fastq
 done
 
-# S.agalactiae
+# A.baumannii
 declare -a cluster=( "SRR2559327" "SRR3131147" "DRR039843" "SRR5477434" "SRR1030409" "SRR1015318" )
 
 for val in ${cluster[@]};do
