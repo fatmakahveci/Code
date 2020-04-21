@@ -32,31 +32,31 @@ if __name__ == "__main__":
 
 	ax1.set(xlim=(0.5, 5.5), ylim=(0, 100))
 
-	ax1.axhline(y=66.7, linestyle='--', alpha=0.7, color='blue')
-	ax1.axhline(y=86.7, linestyle='--', alpha=0.7, color='green')
-	ax1.axhline(y=100.0, linestyle='--', alpha=0.7, color='darkorange')
+	ax1.axhline(y=66.7, linestyle='--', alpha=0.7, color='black')
+	ax1.axhline(y=86.7, linestyle='--', alpha=0.7, color='black')
+	ax1.axhline(y=100.0, linestyle='--', alpha=0.7, color='black')
 	
-	x = np.arange(0.0, 8.0)
-	y0 = np.array([0.0] * 8)
-	y1 = np.array([66.7] * 8)
-	y2 = np.array([86.7] * 8)
-	y3 = np.array([100.0] * 8)
+	# x = np.arange(0.0, 8.0)
+	# y0 = np.array([0.0] * 8)
+	# y1 = np.array([66.7] * 8)
+	# y2 = np.array([86.7] * 8)
+	# y3 = np.array([100.0] * 8)
 	
-	ax1.fill_between(x, y0, y1, color='blue', alpha=0.3) # label='First strain'
-	ax1.fill_between(x, y1, y2, color='green', alpha=0.3) # , label='Second strain')
-	ax1.fill_between(x, y2, y3, color='darkorange', alpha=0.3) #, label='Third strain')
+	# ax1.fill_between(x, y0, y1, color='blue', alpha=0.3) # label='First strain'
+	# ax1.fill_between(x, y1, y2, color='green', alpha=0.3) # , label='Second strain')
+	# ax1.fill_between(x, y2, y3, color='darkorange', alpha=0.3) #, label='Third strain')
 
-	ax1.bar(index - bar_width, bwa_content1, bar_width, color='dodgerblue', edgecolor='black')
-	ax1.bar(index - bar_width, bwa_content2, bar_width, color='seagreen', bottom = bwa_content1, edgecolor='black')
-	ax1.bar(index - bar_width, bwa_content3, bar_width, color='orange', bottom = bwa_content1+bwa_content2, edgecolor='black')
+	ax1.bar(index - bar_width, bwa_content1, bar_width, color='navy', edgecolor='black')
+	ax1.bar(index - bar_width, bwa_content2, bar_width, color='dodgerblue', bottom = bwa_content1, edgecolor='black')
+	ax1.bar(index - bar_width, bwa_content3, bar_width, color='steelblue', bottom = bwa_content1+bwa_content2, edgecolor='black')
 
-	ax1.bar(index, sbg_content1, bar_width, color='navy', edgecolor='black')
-	ax1.bar(index, sbg_content2, bar_width, color='darkgreen', bottom = sbg_content1, edgecolor='black')
-	ax1.bar(index, sbg_content3, bar_width, color='gold', bottom = sbg_content1+sbg_content2, edgecolor='black')
+	ax1.bar(index, sbg_content1, bar_width, color='darkgreen', edgecolor='black')
+	ax1.bar(index, sbg_content2, bar_width, color='seagreen', bottom = sbg_content1, edgecolor='black')
+	ax1.bar(index, sbg_content3, bar_width, color='limegreen', bottom = sbg_content1+sbg_content2, edgecolor='black')
 
-	ax1.bar(index + bar_width, vg_content1, bar_width, color='steelblue', edgecolor='black')
-	ax1.bar(index + bar_width, vg_content2, bar_width, color='limegreen', bottom = vg_content1, edgecolor='black')
-	ax1.bar(index + bar_width, vg_content3, bar_width, color='darkorange', bottom = vg_content1+vg_content2, edgecolor='black')
+	ax1.bar(index + bar_width, vg_content1, bar_width, color='darkorange', edgecolor='black')
+	ax1.bar(index + bar_width, vg_content2, bar_width, color='orange', bottom = vg_content1, edgecolor='black')
+	ax1.bar(index + bar_width, vg_content3, bar_width, color='gold', bottom = vg_content1+vg_content2, edgecolor='black')
 
 	for i in range(1,6):
 		ax1.text(i-0.2, 1.0, 'BWA', color='white', fontweight='bold',ha='center', va='bottom', fontsize='x-small', rotation=90)
