@@ -12,10 +12,10 @@ for specific data downloads from ncbi: https://pypi.org/project/ncbi-genome-down
 
 # Shell commands
 
-* how to login your remote server without password:* >> sudo apt-get install sshpass; alias name_of_command_shortcut='sshpass -p ssh username@remote_host'
+* <ins>Login your remote server without password:</ins> >> sudo apt-get install sshpass; alias name_of_command_shortcut='sshpass -p ssh username@remote_host'
 
-* how to change command name:* >> nano ~/.bashrc; alias my_command='original command'; source ~/.bashrc
+* <ins>Change command name:</ins> >> nano ~/.bashrc; alias my_command='original command'; source ~/.bashrc
 
-* how to reach a tool from anywhere in terminal:*  >> nano ~/.bashrc; export PATH=$PATH:/path/; source ~/.bashrc
+* <ins>Reach a tool from anywhere in terminal:</ins> >> nano ~/.bashrc; export PATH=$PATH:/path/; source ~/.bashrc
 
-* install bedtools:* sudo apt install bedtools
+* <ins>Install bedtools:</ins> >> sudo apt install bedtools
