@@ -9,7 +9,7 @@ if __name__=="__main__":
 
 	upper_idx_dict = {}
 
-	with open("acc_tax.txt", "r") as f:
+	with open("acc_tax_gb.txt", "r") as f:
 
 		for idx, line in enumerate(f, 1):
 			
@@ -18,11 +18,7 @@ if __name__=="__main__":
 			if (first_char in upper_list) and not (first_char in upper_idx_dict):
 
 				upper_idx_dict[first_char] = idx
-				upper_idx_dict[previous_char].append(idx-1)
-
-				previous_char = first_char
 
 		f.close()
 
 	print(upper_idx_dict)
-
