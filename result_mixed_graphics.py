@@ -40,13 +40,19 @@ if __name__ == "__main__":
 		widths = data[:, i]
 		actual_value = actual_results_list[:,i]
 		starts = data_cum[:, i] - widths
-		ax1.barh(labels, widths, left=starts, height=0.5, label=colname, color=color)
+		if i == 0:
+			color_ = 'navy'
+		elif i == 1:
+			color_ = 'darkgreen'
+		else:
+			color_ = 'darkorange'
+		ax1.barh(labels, widths, left=starts, height=0.5, label=colname, color=color_)
 
 		xcenters = starts + widths / 2
 
 		r, g, b, _ = color
-		# text_color = 'white' if r * g * b < 0.5 else 'darkgrey'
-		text_color = 'black'
+		text_color = 'white' if r * g * b < 0.5 else 'darkgrey'
+		# text_color = 'black'
 		for y, (x, c) in enumerate(zip(xcenters, widths)):
 			ax1.text(x, y, str(float(c)), ha='center', va='center', color=text_color)
 
@@ -68,55 +74,55 @@ if __name__ == "__main__":
 	ax1.text(0.35*(left+right), 0.72*(bottom+top), 'RA:70%',
 		horizontalalignment='center',
 		verticalalignment='center',
-		fontsize=8, color='black',
+		fontsize=7, color='black',
 		transform=ax1.transAxes)
 
 	ax1.text(0.80*(left+right), 0.72*(bottom+top), 'RA:20%',
 		horizontalalignment='center',
 		verticalalignment='center',
-		fontsize=8, color='black',
+		fontsize=7, color='black',
 		transform=ax1.transAxes)
 
-	ax1.text(0.95*(left+right), 0.72*(bottom+top), 'RA:10%',
+	ax1.text(0.94*(left+right), 0.72*(bottom+top), 'RA:10%',
 		horizontalalignment='center',
 		verticalalignment='center',
-		fontsize=8, color='black',
+		fontsize=7, color='black',
 		transform=ax1.transAxes)
 
 	ax1.text(0.35*(left+right), 0.36*(bottom+top), 'RA:70%',
 		horizontalalignment='center',
 		verticalalignment='center',
-		fontsize=8, color='black',
+		fontsize=7, color='black',
 		transform=ax1.transAxes)
 
 	ax1.text(0.80*(left+right), 0.36*(bottom+top), 'RA:20%',
 		horizontalalignment='center',
 		verticalalignment='center',
-		fontsize=8, color='black',
+		fontsize=7, color='black',
 		transform=ax1.transAxes)
 
-	ax1.text(0.95*(left+right), 0.36*(bottom+top), 'RA:10%',
+	ax1.text(0.94*(left+right), 0.36*(bottom+top), 'RA:10%',
 		horizontalalignment='center',
 		verticalalignment='center',
-		fontsize=8, color='black',
+		fontsize=7, color='black',
 		transform=ax1.transAxes)
 
 	ax1.text(0.35*(left+right), 0.02*(bottom+top), 'RA:70%',
 		horizontalalignment='center',
 		verticalalignment='center',
-		fontsize=8, color='black',
+		fontsize=7, color='black',
 		transform=ax1.transAxes)
 
 	ax1.text(0.80*(left+right), 0.02*(bottom+top), 'RA:20%',
 		horizontalalignment='center',
 		verticalalignment='center',
-		fontsize=8, color='black',
+		fontsize=7, color='black',
 		transform=ax1.transAxes)
 
-	ax1.text(0.95*(left+right), 0.02*(bottom+top), 'RA:10%',
+	ax1.text(0.94*(left+right), 0.02*(bottom+top), 'RA:10%',
 		horizontalalignment='center',
 		verticalalignment='center',
-		fontsize=8, color='black',
+		fontsize=7, color='black',
 		transform=ax1.transAxes)
 
 	ax1.grid(which='major', linestyle='-', linewidth='0.05', alpha=0.3, color='black')
@@ -156,7 +162,7 @@ if __name__ == "__main__":
 	ax2.set_xticks(np.arange(0.8, 1.4, 0.2))
 	ax2.set_yticks(np.arange(0, 700, 50))
 	ax2.set_xticklabels(['BWA', 'SBG', 'VG'], rotation=90)
-	ax2.minorticks_on()
+	# ax2.minorticks_on()
 	ax2.grid(which='major', linestyle='-', linewidth='0.05', alpha=0.3, color='black')
 	ax2.grid(which='minor', linestyle='--', linewidth='0.001', alpha=0.1, color='gray')
 	ax2.grid(True)
@@ -164,5 +170,5 @@ if __name__ == "__main__":
 	ax2.legend(loc='upper right', fontsize='x-small')
 	
 	plt.tight_layout()
-	# plt.savefig('mixed_10_3_2.eps', format='eps')
+	# plt.savefig('mixed_samples_accuracy.pdf', format='pdf')
 	plt.show()
